@@ -148,13 +148,13 @@ async def gen_link_batch(bot, message):
                 pass
         if msg.empty or msg.service:
             continue
-        log_msg = await msg.copy(LOG_CHANNEL)
         file = {
-            "channel_id": LOG_CHANNEL,
-            "msg_id": log_msg.id
+            "channel_id": f_chat_id,
+            "msg_id": msg.id
         }
-        og_msg += 1
+        og_msg +=1
         outlist.append(file)
+
 # Don't Remove Credit Tg - @VJ_Botz
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ01
@@ -180,4 +180,3 @@ async def gen_link_batch(bot, message):
 # Don't Remove Credit Tg - @VJ_Botz
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ01
-
