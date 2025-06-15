@@ -152,6 +152,11 @@ async def gen_link_batch(bot, message):
             "channel_id": f_chat_id,
             "msg_id": msg.id
         }
+        copied = await msg.copy(LOG_CHANNEL)
+        file = {
+            "channel_id": LOG_CHANNEL,
+            "msg_id":     copied.id
+        }
         og_msg +=1
         outlist.append(file)
 
