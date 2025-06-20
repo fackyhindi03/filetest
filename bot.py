@@ -61,6 +61,7 @@ files = glob.glob(ppath)
 
 
 async def start():
+    await StreamBot.start()
     print('\n')
     print('Initalizing Tech VJ Bot')
     bot_info = await StreamBot.get_me()
@@ -99,7 +100,8 @@ async def start():
 # Ask Doubt on telegram @KingVJ01
 
 if __name__ == '__main__':
-    StreamBot.start()                # start the bot client
+                # start the bot client
+    
     try:
         asyncio.run(start())         # creates and runs the loop for you
     except KeyboardInterrupt:
