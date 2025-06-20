@@ -54,6 +54,8 @@ from TechVJ.bot.clients import initialize_clients
 
 ppath = "plugins/*.py"
 files = glob.glob(ppath)
+StreamBot.start()
+loop = asyncio.get_event_loop()
 
 # Don't Remove Credit Tg - @VJ_Botz
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
@@ -61,7 +63,6 @@ files = glob.glob(ppath)
 
 
 async def start():
-    await StreamBot.start()
     print('\n')
     print('Initalizing Tech VJ Bot')
     bot_info = await StreamBot.get_me()
@@ -100,10 +101,8 @@ async def start():
 # Ask Doubt on telegram @KingVJ01
 
 if __name__ == '__main__':
-                # start the bot client
-    
     try:
-        asyncio.run(start())         # creates and runs the loop for you
+        loop.run_until_complete(start())
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
 
