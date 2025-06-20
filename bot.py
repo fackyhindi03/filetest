@@ -101,8 +101,9 @@ async def start():
 # Ask Doubt on telegram @KingVJ01
 
 if __name__ == '__main__':
+    StreamBot.start()                # start the bot client
     try:
-        loop.run_until_complete(start())
+        asyncio.run(start())         # creates and runs the loop for you
     except KeyboardInterrupt:
         logging.info('Service Stopped Bye 👋')
 
