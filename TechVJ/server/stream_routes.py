@@ -104,7 +104,7 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
     file_id = await tg_connect.get_file_properties(id)
     logging.debug("after calling get_file_properties")
     
-    if file_id.unique_id[:6] != secure_hash:
+  if file_id.unique_id[:6] != secure_hash:
         logging.debug(f"Invalid hash for message with ID {id}")
         raise InvalidHash
     
@@ -154,10 +154,10 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
         else:
             mime_type = "application/octet-stream"
             file_name = f"{secrets.token_hex(2)}.unknown"
-
-    return web.Response(
+    
+    # ✅ Unindented block (always executes)
+    resp = web.StreamResponse(
         status=206 if range_header else 200,
-        body=body,
         headers={
             "Content-Type": f"{mime_type}",
             "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
@@ -166,3 +166,13 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
             "Accept-Ranges": "bytes",
         },
     )
+    await resp.prepare(request)
+    
+    try:
+        async for chunk in body:
+            await resp.write(chunk)
+        await resp.write_eof()
+    except (ConnectionResetError, BrokenPipeError, BadStatusLine):
+        logging.warning("Client disconnected during stream")
+        return resp
+    return resp
