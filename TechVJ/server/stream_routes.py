@@ -104,9 +104,9 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
     file_id = await tg_connect.get_file_properties(id)
     logging.debug("after calling get_file_properties")
     
-    if file_id.unique_id[:6] != secure_hash:
-        logging.debug(f"Invalid hash for message with ID {id}")
-        raise InvalidHash
+ # if file_id.unique_id[:6] != secure_hash:
+       # logging.debug(f"Invalid hash for message with ID {id}")
+    #    raise InvalidHash
     
     file_size = file_id.file_size
 
