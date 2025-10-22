@@ -154,25 +154,25 @@ async def media_streamer(request: web.Request, id: int, secure_hash: str):
         else:
             mime_type = "application/octet-stream"
             file_name = f"{secrets.token_hex(2)}.unknown"
-
-        resp = web.StreamResponse(
-            status=206 if range_header else 200,
-            headers={
-                "Content-Type": f"{mime_type}",
-                "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
-                "Content-Length": str(req_length),
-                "Content-Disposition": f'{disposition}; filename="{file_name}"',
-                "Accept-Ranges": "bytes",
-            },
-        )
-        await resp.prepare(request)
-        
-        try:
-            async for chunk in body:
-                await resp.write(chunk)
-            await resp.write_eof()
-        except (ConnectionResetError, BrokenPipeError, BadStatusLine):
-            logging.warning("Client disconnected during stream")
-            return resp
-        return resp
+    
+    # ✅ Unindented block (always executes)
+    resp = web.StreamResponse(
+        status=206 if range_header else 200,
+        headers={
+            "Content-Type": f"{mime_type}",
+            "Content-Range": f"bytes {from_bytes}-{until_bytes}/{file_size}",
+            "Content-Length": str(req_length),
+            "Content-Disposition": f'{disposition}; filename="{file_name}"',
+            "Accept-Ranges": "bytes",
+        },
     )
+    await resp.prepare(request)
+    
+    try:
+        async for chunk in body:
+            await resp.write(chunk)
+        await resp.write_eof()
+    except (ConnectionResetError, BrokenPipeError, BadStatusLine):
+        logging.warning("Client disconnected during stream")
+        return resp
+    return resp
