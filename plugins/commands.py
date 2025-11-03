@@ -281,14 +281,33 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
         return
 
     try:
+        # check if user is now joined
         member = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
         if member.status in ("member", "administrator", "creator"):
-            await cq.message.edit_text("✅ You’ve joined! Send /start again to get your file.")
+            # ✅ joined successfully
+            await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
+            
+            # check last bot message context (start link)
+            # if message is reply to a /start, re-run that command
+            text = cq.message.reply_to_message.text if cq.message.reply_to_message else None
+
+            # fallback: if no reply, just send start
+            if text and text.startswith("/start"):
+                await client.send_message(
+                    chat_id=cq.from_user.id,
+                    text=text
+                )
+            else:
+                await client.send_message(
+                    chat_id=cq.from_user.id,
+                    text="/start"
+                )
             return
-        else:
-            await cq.answer("Join the channel first!", show_alert=True)
+
+        # if still not joined
+        await cq.answer("Please join the channel first!", show_alert=True)
     except UserNotParticipant:
-        await cq.answer("Join the channel first!", show_alert=True)
+        await cq.answer("Please join the channel first!", show_alert=True)
     except Exception as e:
         print(f"[ForceSub Callback Error] {e}")
         await cq.answer("Error checking membership. Try again later.", show_alert=True)
