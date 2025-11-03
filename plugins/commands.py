@@ -299,39 +299,38 @@ async def _force_sub_sanity(client):
 
 
 
+from pyrogram import Client
+from pyrogram.types import CallbackQuery
 from pyrogram.errors import UserNotParticipant
 from config import FORCE_SUB
+import asyncio
 
-@Client.on_callback_query(filters.regex("^fsub_check$"))
+@Client.on_callback_query(filters.regex("^fsub_check"))
 async def _fsub_callback(client: Client, cq: CallbackQuery):
-    if cq.data != "fsub_check":
-        return
-
-    user_id = cq.from_user.id
+    # allow 1-2 seconds for Telegram to update membership after join
+    await asyncio.sleep(2)
 
     try:
-        # ✅ check if user has now joined
-        member = await client.get_chat_member(FORCE_SUB, user_id)
-        if member.status in ("member", "administrator", "creator"):
-            # ✅ user is now subscribed
-            await cq.message.edit_text("✅ You have successfully joined! Fetching your file...")
+        m = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
+        if m.status in ("member", "administrator", "creator"):
+            await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
 
-            # re-run /start (deep link)
-            # detect last /start command if present in message context
-            if cq.message.reply_to_message and cq.message.reply_to_message.text.startswith("/start"):
-                await client.send_message(
-                    chat_id=user_id,
-                    text=cq.message.reply_to_message.text
-                )
-            else:
-                # fallback if no stored /start
-                await client.send_message(
-                    chat_id=user_id,
-                    text="/start"
-                )
+            # payload is encoded in callback_data as "fsub_check|/start <payload>"
+            payload = ""
+            parts = cq.data.split("|", 1)
+            if len(parts) == 2 and parts[1].startswith("/start"):
+                payload = parts[1]
+
+            # fallback to reply_to_message if available
+            if not payload and cq.message.reply_to_message and cq.message.reply_to_message.text:
+                payload = cq.message.reply_to_message.text
+
+            # final fallback: plain /start
+            payload = payload or "/start"
+
+            await client.send_message(cq.from_user.id, payload)
             return
 
-        # if still not joined
         await cq.answer("Please join the channel first!", show_alert=True)
 
     except UserNotParticipant:
@@ -339,7 +338,6 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
     except Exception as e:
         print(f"[ForceSub Callback Error] {e}")
         await cq.answer("Error checking membership. Try again later.", show_alert=True)
-
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
