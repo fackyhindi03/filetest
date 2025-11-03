@@ -272,6 +272,16 @@ async def start(client, message):
 
 
 
+@Client.on_message(filters.command("dbg_fsub") & filters.private)
+async def dbg_fsub(client, m: Message):
+    try:
+        chat = await client.get_chat(FORCE_SUB)
+        mem  = await client.get_chat_member(FORCE_SUB, m.from_user.id)
+        await m.reply(f"Channel: {chat.title} ({chat.id})\nYou: {mem.status}")
+    except Exception as e:
+        await m.reply(f"DBG error: {e}")
+
+
 from pyrogram.errors import ChatAdminRequired, PeerIdInvalid, ChannelPrivate
 
 async def _force_sub_sanity(client):
@@ -292,7 +302,7 @@ async def _force_sub_sanity(client):
 from pyrogram.errors import UserNotParticipant
 from config import FORCE_SUB
 
-@Client.on_callback_query()
+@Client.on_callback_query(filters.regex("^fsub_check$"))
 async def _fsub_callback(client: Client, cq: CallbackQuery):
     if cq.data != "fsub_check":
         return
@@ -373,7 +383,7 @@ async def base_site_handler(client, m: Message):
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ01
 
-@Client.on_callback_query()
+@Client.on_callback_query(~filters.regex("^fsub_check$"))
 async def cb_handler(client: Client, query: CallbackQuery):
     if query.data == "close_data":
         await query.message.delete()
