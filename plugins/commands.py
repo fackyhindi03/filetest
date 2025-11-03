@@ -54,6 +54,208 @@ def formate_file_name(file_name):
 # Ask Doubt on telegram @KingVJ0
 
 
+async def handle_file_request(client, user, data, reply_to_msg=None):
+    """Handles sending single files, batches, and verification links."""
+    username = client.me.username
+    try:
+        pre, file_id = data.split('_', 1)
+    except:
+        file_id = data
+        pre = ""
+    
+    if data.split("-", 1)[0] == "verify":
+        userid = data.split("-", 2)[1]
+        token = data.split("-", 3)[2]
+        if str(user.id) != str(userid):
+            return await client.send_message(user.id,
+                text="<b>Invalid link or Expired link !</b>",
+                protect_content=True
+            )
+        is_valid = await check_token(client, userid, token)
+        if is_valid == True:
+            await client.send_message(user.id,
+                text=f"<b>Hey {user.mention}, You are successfully verified !\nNow you have unlimited access for all files for 8 Hours.</b>",
+                protect_content=True
+            )
+            await verify_user(client, userid, token)
+        else:
+            return await client.send_message(user.id,
+                text="<b>Invalid link or Expired link !</b>",
+                protect_content=True
+            )
+        return
+
+    elif data.split("-", 1)[0] == "BATCH":
+        try:
+            if not await check_verification(client, user.id) and VERIFY_MODE == True:
+                btn = [[
+                    InlineKeyboardButton("Verify", url=await get_token(client, user.id, f"https://telegram.me/{username}?start="))
+                ],[
+                    InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)
+                ]]
+                await client.send_message(user.id,
+                    text="<b>You are not verified !\nKindly verify to continue !</b>",
+                    protect_content=True,
+                    reply_markup=InlineKeyboardMarkup(btn)
+                )
+                return
+        except Exception as e:
+            return await client.send_message(user.id, f"**Error - {e}**")
+        
+        if reply_to_msg:
+            sts = await reply_to_msg.reply("**🔺 ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ**")
+        else:
+            sts = await client.send_message(user.id, "**🔺 ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ**")
+
+        file_id = data.split("-", 1)[1]
+        msgs = BATCH_FILES.get(file_id)
+        if not msgs:
+            decode_file_id = base64.urlsafe_b64decode(file_id + "=" * (-len(file_id) % 4)).decode("ascii")
+            msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+            media = getattr(msg, msg.media.value)
+            file_id = media.file_id
+            file = await client.download_media(file_id)
+            try: 
+                with open(file) as file_data:
+                    msgs=json.loads(file_data.read())
+            except:
+                await sts.edit("FAILED")
+                return await client.send_message(LOG_CHANNEL, "UNABLE TO OPEN FILE.")
+            os.remove(file)
+            BATCH_FILES[file_id] = msgs
+            
+        filesarr = []
+        for msg in msgs:
+            channel_id = int(msg.get("channel_id"))
+            msgid = msg.get("msg_id")
+            info = await client.get_messages(channel_id, int(msgid))
+            if info.media:
+                file_type = info.media
+                file = getattr(info, file_type.value)
+                f_caption = getattr(info, 'caption', '')
+                if f_caption:
+                    f_caption = f_caption.html
+                old_title = getattr(file, "file_name", "")
+                title = formate_file_name(old_title)
+                size=get_size(int(file.file_size))
+                if BATCH_FILE_CAPTION:
+                    try:
+                        f_caption=BATCH_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='' if f_caption is None else f_caption)
+                    except:
+                        f_caption=f_caption
+                if f_caption is None:
+                    f_caption = f"{title}"
+                if STREAM_MODE == True:
+                    if info.video or info.document:
+                        log_msg = info
+                        fileName = {quote_plus(get_name(log_msg))}
+                        stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+                        download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+                        button = [[
+                            InlineKeyboardButton("• ᴅᴏᴡɴʟᴏᴀᴅ •", url=download),
+                            InlineKeyboardButton('• ᴡᴀᴛᴄʜ •', url=stream)
+                        ],[
+                            InlineKeyboardButton("• ᴡᴀᴛᴄʜ ɪɴ ᴡᴇʙ ᴀᴘᴘ •", web_app=WebAppInfo(url=stream))
+                        ]]
+                        reply_markup=InlineKeyboardMarkup(button)
+                else:
+                    reply_markup = None
+                try:
+                    msg = await info.copy(chat_id=user.id, caption=f_caption, protect_content=False, reply_markup=reply_markup)
+                except FloodWait as e:
+                    await asyncio.sleep(e.value)
+                    msg = await info.copy(chat_id=user.id, caption=f_caption, protect_content=False, reply_markup=reply_markup)
+                except:
+                    continue
+            else:
+                try:
+                    msg = await info.copy(chat_id=user.id, protect_content=False)
+                except FloodWait as e:
+                    await asyncio.sleep(e.value)
+                    msg = await info.copy(chat_id=user.id, protect_content=False)
+                except:
+                    continue
+            filesarr.append(msg)
+            await asyncio.sleep(1) 
+        await sts.delete()
+        if AUTO_DELETE_MODE == True:
+            k = await client.send_message(chat_id = user.id, text=f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nThis Movie File/Video will be deleted in <b><u>{AUTO_DELETE} minutes</u> 🫥 <i></b>(Due to Copyright Issues)</i>.\n\n<b><i>Please forward this File/Video to your Saved Messages and Start Download there</b>")
+            await asyncio.sleep(AUTO_DELETE_TIME)
+            for x in filesarr:
+                try:
+                    await x.delete()
+                except:
+                    pass
+            await k.edit_text("<b>Your All Files/Videos is successfully deleted!!!</b>")
+        return
+
+    # Single File part
+    else: 
+        try:
+            pre, decode_file_id = ((base64.urlsafe_b64decode(data + "=" * (-len(data) % 4))).decode("ascii")).split("_", 1)
+        except Exception as e:
+            print(f"Error decoding data: {e}")
+            return # Failed to decode
+            
+        if not await check_verification(client, user.id) and VERIFY_MODE == True:
+            btn = [[
+                InlineKeyboardButton("Verify", url=await get_token(client, user.id, f"https://telegram.me/{username}?start="))
+            ],[
+                InlineKeyboardButton("How To Open Link & Verify", url=VERIFY_TUTORIAL)
+            ]]
+            await client.send_message(user.id,
+                text="<b>You are not verified !\nKindly verify to continue !</b>",
+                protect_content=True,
+                reply_markup=InlineKeyboardMarkup(btn)
+            )
+            return
+        try:
+            msg = await client.get_messages(LOG_CHANNEL, int(decode_file_id))
+            if msg.media:
+                media = getattr(msg, msg.media.value)
+                title = formate_file_name(media.file_name)
+                size=get_size(media.file_size)
+                f_caption = f"<code>{title}</code>"
+                if CUSTOM_FILE_CAPTION:
+                    try:
+                        f_caption=CUSTOM_FILE_CAPTION.format(file_name= '' if title is None else title, file_size='' if size is None else size, file_caption='')
+                    except:
+                        return
+                if STREAM_MODE == True:
+                    if msg.video or msg.document:
+                        log_msg = msg
+                        fileName = {quote_plus(get_name(log_msg))}
+                        stream = f"{URL}watch/{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+                        download = f"{URL}{str(log_msg.id)}/{quote_plus(get_name(log_msg))}?hash={get_hash(log_msg)}"
+                        button = [[
+                            InlineKeyboardButton("• ᴅᴏᴡɴʟᴏᴀᴅ •", url=download),
+                            InlineKeyboardButton('• ᴡᴀᴛᴄʜ •', url=stream)
+                        ],[
+                            InlineKeyboardButton("• ᴡᴀᴛᴄʜ ɪɴ ᴡᴇʙ ᴀᴘᴘ •", web_app=WebAppInfo(url=stream))
+                        ]]
+                        reply_markup=InlineKeyboardMarkup(button)
+                else:
+                    reply_markup = None
+                del_msg = await msg.copy(chat_id=user.id, caption=f_caption, reply_markup=reply_markup, protect_content=False)
+            else:
+                del_msg = await msg.copy(chat_id=user.id, protect_content=False)
+            
+            if AUTO_DELETE_MODE == True:
+                k = await client.send_message(chat_id = user.id, text=f"<b><u>❗️❗️❗️IMPORTANT❗️️❗️❗️</u></b>\n\nThis Movie File/Video will be deleted in <b><u>{AUTO_DELETE} minutes</u> 🫥 <i></b>(Due to Copyright Issues)</i>.\n\n<b><i>Please forward this File/Video to your Saved Messages and Start Download there</b>")
+                await asyncio.sleep(AUTO_DELETE_TIME)
+                try:
+                    await del_msg.delete()
+                except:
+                    pass
+                await k.edit_text("<b>Your File/Video is successfully deleted!!!</b>")
+            return
+        except Exception as e:
+            print(f"Error in single file part: {e}")
+            pass
+
+# --- END OF NEW FUNCTION ---
+
+
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     username = client.me.username
@@ -63,6 +265,7 @@ async def start(client, message):
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
+    
     if len(message.command) != 2:
         buttons = [[
             InlineKeyboardButton('💝 sᴜʙsᴄʀɪʙᴇ ᴍʏ ʏᴏᴜᴛᴜʙᴇ ᴄʜᴀɴɴᴇʟ', url='https://youtube.com/@chineseanimeshort?si=jSRmbRrsfm_P_95c')
@@ -83,6 +286,10 @@ async def start(client, message):
             reply_markup=reply_markup
         )
         return
+        
+    data = message.command[1]
+    await handle_file_request(client, message.from_user, data, reply_to_msg=message)
+    
 
 
     
@@ -313,6 +520,8 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
     try:
         m = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
         if m.status in ("member", "administrator", "creator"):
+            
+            # --- THIS IS THE MODIFIED PART ---
             await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
 
             # payload is encoded in callback_data as "fsub_check|/start <payload>"
@@ -328,8 +537,16 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
             # final fallback: plain /start
             payload = payload or "/start"
 
-            await client.send_message(cq.from_user.id, payload)
+            if not payload.startswith("/start "):
+                 await cq.message.delete()
+                 await client.send_message(cq.from_user.id, "Welcome! Now you can use /start to get your file again.")
+                 return
+
+            data = payload.split(" ", 1)[1]
+            await handle_file_request(client, cq.from_user, data, reply_to_msg=None)
+            await cq.message.delete() # Delete the "Please Join" message
             return
+            # --- END OF MODIFIED PART ---
 
         await cq.answer("Please join the channel first!", show_alert=True)
 
@@ -338,6 +555,7 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
     except Exception as e:
         print(f"[ForceSub Callback Error] {e}")
         await cq.answer("Error checking membership. Try again later.", show_alert=True)
+
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
