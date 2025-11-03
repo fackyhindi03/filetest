@@ -275,37 +275,41 @@ async def start(client, message):
 
 
 
+from pyrogram.errors import UserNotParticipant
+from config import FORCE_SUB
+
 @Client.on_callback_query()
 async def _fsub_callback(client: Client, cq: CallbackQuery):
     if cq.data != "fsub_check":
         return
 
-    try:
-        # check if user is now joined
-        member = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
-        if member.status in ("member", "administrator", "creator"):
-            # ✅ joined successfully
-            await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
-            
-            # check last bot message context (start link)
-            # if message is reply to a /start, re-run that command
-            text = cq.message.reply_to_message.text if cq.message.reply_to_message else None
+    user_id = cq.from_user.id
 
-            # fallback: if no reply, just send start
-            if text and text.startswith("/start"):
+    try:
+        # ✅ check if user has now joined
+        member = await client.get_chat_member(FORCE_SUB, user_id)
+        if member.status in ("member", "administrator", "creator"):
+            # ✅ user is now subscribed
+            await cq.message.edit_text("✅ You have successfully joined! Fetching your file...")
+
+            # re-run /start (deep link)
+            # detect last /start command if present in message context
+            if cq.message.reply_to_message and cq.message.reply_to_message.text.startswith("/start"):
                 await client.send_message(
-                    chat_id=cq.from_user.id,
-                    text=text
+                    chat_id=user_id,
+                    text=cq.message.reply_to_message.text
                 )
             else:
+                # fallback if no stored /start
                 await client.send_message(
-                    chat_id=cq.from_user.id,
+                    chat_id=user_id,
                     text="/start"
                 )
             return
 
         # if still not joined
         await cq.answer("Please join the channel first!", show_alert=True)
+
     except UserNotParticipant:
         await cq.answer("Please join the channel first!", show_alert=True)
     except Exception as e:
