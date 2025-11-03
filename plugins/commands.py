@@ -285,7 +285,7 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
         except:
             await cq.answer("You’re all set ✅", show_alert=True)
     else:
-        await cq.answer("Still not joined. Please join first and tap again.", show_alert=True)
+        await cq.answer("Hehe...abhi bhi join nahi hue ho sab channel mein...join karo pehle", show_alert=True)
 
 
 
