@@ -547,14 +547,12 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
             
             try:
                 m = await client.get_chat_member(ch, user_id)
-            
-                # --- THIS IS THE FIX ---
+                
                 if m.status not in (enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.CREATOR):
-                # --- END OF FIX ---
-            
                     # User is not in this channel
                     await cq.answer(f"You must join all channels. Please join {display_name} and try again.", show_alert=True)
                     return
+            
             except UserNotParticipant:
                 await cq.answer(f"You haven't joined {display_name}. Please join and try again.", show_alert=True)
                 return
@@ -563,6 +561,18 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
                 print(f"[ForceSub Callback Error] Bot can't access channel {display_name}: {e}")
                 await cq.answer(f"Bot error: Cannot verify membership in {display_name}. Please contact admin.", show_alert=True)
                 return
+                
+            # --- THIS IS THE NEW FIX ---
+            except Exception as e:
+                # Handle the weird "CREATOR" exception
+                if str(e) == "CREATOR":
+                    print(f"[Debug] User is CREATOR. Passing check in callback.")
+                    pass # User is creator, proceed to next channel in loop
+                else:
+                    # Other unexpected error
+                    print(f"[ForceSub Callback Error] Unexpected error checking {display_name}: {e}")
+                    await cq.answer(f"An error occurred checking {display_name}. Try again.", show_alert=True)
+                    return
             # --- END OF FIX ---
 
         # If we get here, the user is in ALL channels. Proceed.
