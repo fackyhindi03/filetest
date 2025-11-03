@@ -19,7 +19,9 @@ import re
 import json
 import base64
 from urllib.parse import quote_plus
+from pyrogram.types import CallbackQuery
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
+from plugins.force_sub import ensure_subscribed
 logger = logging.getLogger(__name__)
 
 BATCH_FILES = {}
@@ -55,6 +57,9 @@ def formate_file_name(file_name):
 @Client.on_message(filters.command("start") & filters.incoming)
 async def start(client, message):
     username = client.me.username
+    # Force Subscribe gate
+    if not await ensure_subscribed(client, message):
+        return
     if not await db.is_user_exist(message.from_user.id):
         await db.add_user(message.from_user.id, message.from_user.first_name)
         await client.send_message(LOG_CHANNEL, script.LOG_TEXT.format(message.from_user.id, message.from_user.mention))
@@ -266,10 +271,23 @@ async def start(client, message):
         return
     except:
         pass
+
+
         
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
+@Client.on_callback_query()
+async def _fsub_callback(client: Client, cq: CallbackQuery):
+    if cq.data != "fsub_check":
+        return
+    ok = await ensure_subscribed(client, cq.message)
+    if ok:
+        try:
+            await cq.message.edit_text("You’re all set ✅ Try your command again.")
+        except:
+            await cq.answer("You’re all set ✅", show_alert=True)
+    else:
+        await cq.answer("Still not joined. Please join first and tap again.", show_alert=True)
+
+
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
