@@ -49,11 +49,15 @@ async def ensure_subscribed(client: Client, message) -> bool:
         try:
             print(f"[Debug] Checking membership for user {user_id} in channel {ch}...")
             m = await client.get_chat_member(ch, user_id)
-            if m.status not in ("member", "administrator", "creator"):
+    
+            # --- THIS IS THE FIX ---
+            if m.status not in (enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.CREATOR):
+            # --- END OF FIX ---
                 print(f"[Debug] User is in channel, but has status: {m.status}. Adding to missing.")
                 missing.append(ch)
             else:
                 print(f"[Debug] User is confirmed member with status: {m.status}.")
+    
         except UserNotParticipant:
             print(f"[Debug] UserNotParticipant error. User is NOT in channel. Adding to missing.")
             missing.append(ch)
@@ -64,16 +68,7 @@ async def ensure_subscribed(client: Client, message) -> bool:
             print(f"[Debug] ChatAdminRequired error. Bot is NOT ADMIN in {ch}. Adding to missing.")
             missing.append(ch)
         except Exception as e:
-            print(f"[Debug] Unexpected error for {ch}: {e}. Adding to missing.")
-            missing.append(ch)
-        except (ChannelPrivate, PeerIdInvalid) as e:
-            print(f"[ForceSub] cannot check {ch}: {e}")
-            missing.append(ch)
-        except ChatAdminRequired:
-            print(f"[ForceSub] bot must be admin in {ch}")
-            missing.append(ch)
-        except Exception as e:
-            print(f"[ForceSub] unexpected error for {ch}: {e}")
+            print(f"[Debug] unexpected error for {ch}: {e}")
             missing.append(ch)
 
     if not missing:
