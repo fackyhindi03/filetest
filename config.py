@@ -20,10 +20,10 @@ def is_enabled(value, default):
 # Bot Information
 API_ID = int(environ.get("API_ID", "27999679"))
 API_HASH = environ.get("API_HASH", "f553398ca957b9c92bcb672b05557038")
-BOT_TOKEN = environ.get("BOT_TOKEN", "7260809129:AAGiRnpJrr7OqMmZbUovi6wxGP5DF-LVKrg")
+BOT_TOKEN = environ.get("BOT_TOKEN", "7947042930:AAG2PfxNbM_CKifeOrZgi_A44VIZ7sQ-7uc")
 
 PICS = (environ.get('PICS', 'https://static.wikia.nocookie.net/xian-ni/images/1/11/Wanglin.webp/revision/latest?cb=20241209233813')).split() # Bot Start Picture
-ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1423807625 1048110820 6520490787').split()]
+ADMINS = [int(admin) if id_pattern.search(admin) else admin for admin in environ.get('ADMINS', '1423807625 1048110820').split()]
 BOT_USERNAME = environ.get("BOT_USERNAME", "file_sharing_bot03_bot") # without @
 PORT = environ.get("PORT", "8000")
 
@@ -44,6 +44,23 @@ AUTO_DELETE_MODE = bool(environ.get('AUTO_DELETE_MODE', True)) # Set True or Fal
 # If Auto Delete Mode Is True Then Fill All Required Variable, If False Then Don't Fill.
 AUTO_DELETE = int(environ.get("AUTO_DELETE", "15")) # Time in Minutes
 AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
+
+
+# ---- Force Subscribe (Join Gate) ----
+# Single channel as string: "@YourChannel"
+# Or multiple: ["@ChannelOne", "@ChannelTwo"]
+FORCE_SUB = os.getenv("FORCE_SUB", "@Facky_Hindi_Donghua").strip()  # e.g., "@Facky_Hindi_Donghua"
+# Optional: comma-separated if you prefer env lists:
+if "," in FORCE_SUB:
+    FORCE_SUB = [x.strip() for x in FORCE_SUB.split(",") if x.strip()]
+
+FS_TEXT = (
+    "Pehle apko niche diye gaye channel or group ko join karna padega fir **✅ I’ve joined** pe click karke apko episode mil jayega.\n\n"
+    "agar koi dikkat aye toh @THe_vK_03 ko DM kare."
+    "**Thank You.**"
+)
+
+
 
 # Channel Information
 LOG_CHANNEL = int(environ.get("LOG_CHANNEL", "-1002631218069"))
