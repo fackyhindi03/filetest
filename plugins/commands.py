@@ -515,48 +515,81 @@ import asyncio
 
 @Client.on_callback_query(filters.regex("^fsub_check"))
 async def _fsub_callback(client: Client, cq: CallbackQuery):
-    # allow 1-2 seconds for Telegram to update membership after join
+    # allow 1-2 seconds for Telegram to update membership
     await asyncio.sleep(2)
+    
+    user_id = cq.from_user.id
+    channels_to_check = _channels() # Get the list of channels from force_sub.py
+    
+    if not channels_to_check:
+        # No force sub configured, just proceed.
+        await _proceed_with_command(client, cq)
+        return
 
     try:
-        m = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
-        if m.status in ("member", "administrator", "creator"):
-            
-            # --- THIS IS THE MODIFIED PART ---
-            await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
+        # Loop through all required channels
+        for ch in channels_to_check:
+            try:
+                m = await client.get_chat_member(ch, user_id)
+                if m.status not in ("member", "administrator", "creator"):
+                    # User is not in this channel
+                    await cq.answer(f"You must join all channels. Please join {ch.lstrip('@')} and try again.", show_alert=True)
+                    return
+            except UserNotParticipant:
+                await cq.answer(f"You haven't joined {ch.lstrip('@')}. Please join and try again.", show_alert=True)
+                return
+            except (ChatAdminRequired, ChannelPrivate, PeerIdInvalid) as e:
+                # This is the new, important check
+                print(f"[ForceSub Callback Error] Bot can't access channel {ch}: {e}")
+                await cq.answer(f"Bot error: Cannot verify membership in {ch}. Please contact admin.", show_alert=True)
+                return
+        
+        # If we get here, the user is in ALL channels. Proceed.
+        await _proceed_with_command(client, cq)
 
-            # payload is encoded in callback_data as "fsub_check|/start <payload>"
-            payload = ""
-            parts = cq.data.split("|", 1)
-            if len(parts) == 2 and parts[1].startswith("/start"):
-                payload = parts[1]
-
-            # fallback to reply_to_message if available
-            if not payload and cq.message.reply_to_message and cq.message.reply_to_message.text:
-                payload = cq.message.reply_to_message.text
-
-            # final fallback: plain /start
-            payload = payload or "/start"
-
-            if not payload.startswith("/start "):
-                 await cq.message.delete()
-                 await client.send_message(cq.from_user.id, "Welcome! Now you can use /start to get your file again.")
-                 return
-
-            data = payload.split(" ", 1)[1]
-            await handle_file_request(client, cq.from_user, data, reply_to_msg=None)
-            await cq.message.delete() # Delete the "Please Join" message
-            return
-            # --- END OF MODIFIED PART ---
-
-        await cq.answer("Please join the channel first!", show_alert=True)
-
-    except UserNotParticipant:
-        await cq.answer("Please join the channel first!", show_alert=True)
     except Exception as e:
         print(f"[ForceSub Callback Error] {e}")
-        await cq.answer("Error checking membership. Try again later.", show_alert=True)
+        await cq.answer("An unexpected error occurred. Try again later.", show_alert=True)
 
+
+async def _proceed_with_command(client: Client, cq: CallbackQuery):
+    """Helper function to run after fsub is cleared"""
+    try:
+        await cq.message.edit_text("✅ You’ve joined! Fetching your file...")
+    except:
+        pass # Message might have been deleted
+
+    # payload is encoded in callback_data as "fsub_check|/start <payload>"
+    payload = ""
+    parts = cq.data.split("|", 1)
+    if len(parts) == 2 and parts[1].startswith("/start"):
+        payload = parts[1]
+
+    # fallback to reply_to_message if available
+    # This is the user's original /start message
+    if not payload and cq.message.reply_to_message and cq.message.reply_to_message.text:
+        payload = cq.message.reply_to_message.text
+
+    # final fallback: plain /start
+    payload = payload or "/start"
+
+    if not payload.startswith("/start "):
+         # User just clicked "I've joined" without a file context.
+         await cq.message.delete()
+         await client.send_message(cq.from_user.id, "Welcome! Now you can use the bot.")
+         return
+
+    data = payload.split(" ", 1)[1]
+    
+    # Call the refactored function from the previous fix
+    # This assumes the 'handle_file_request' function is already in this file
+    await handle_file_request(client, cq.from_user, data, reply_to_msg=None)
+    
+    # Delete the "Please Join" message
+    try:
+        await cq.message.delete()
+    except:
+        pass
 
 @Client.on_message(filters.command('api') & filters.private)
 async def shortener_api_handler(client, m: Message):
