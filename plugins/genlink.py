@@ -11,6 +11,7 @@ import re
 import os
 import json
 import base64
+from plugins.force_sub import ensure_subscribed
 
 # Don't Remove Credit Tg - @VJ_Botz
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
@@ -29,6 +30,8 @@ async def allowed(_, __, message):
 
 @Client.on_message((filters.document | filters.video | filters.audio) & filters.private & filters.create(allowed))
 async def incoming_gen_link(bot, message):
+    if not await ensure_subscribed(bot, message):
+        return
     username = (await bot.get_me()).username
     file_type = message.media
     post = await message.copy(LOG_CHANNEL)
@@ -51,6 +54,8 @@ async def incoming_gen_link(bot, message):
 
 @Client.on_message(filters.command(['link']) & filters.create(allowed))
 async def gen_link_s(bot, message):
+    if not await ensure_subscribed(bot, message):
+        return
     username = (await bot.get_me()).username
     replied = message.reply_to_message
     if not replied:
@@ -83,6 +88,8 @@ async def gen_link_s(bot, message):
 
 @Client.on_message(filters.command(['batch']) & filters.create(allowed))
 async def gen_link_batch(bot, message):
+    if not await ensure_subscribed(bot, message):
+        return
     username = (await bot.get_me()).username
     if " " not in message.text:
         return await message.reply("Use correct format.\nExample /batch https://t.me/vj_botz/10 https://t.me/vj_botz/20.")
@@ -185,3 +192,4 @@ async def gen_link_batch(bot, message):
 # Don't Remove Credit Tg - @VJ_Botz
 # Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
 # Ask Doubt on telegram @KingVJ01
+
