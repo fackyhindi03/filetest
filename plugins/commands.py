@@ -547,7 +547,11 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
             
             try:
                 m = await client.get_chat_member(ch, user_id)
-                if m.status not in ("member", "administrator", "creator"):
+            
+                # --- THIS IS THE FIX ---
+                if m.status not in (enums.ChatMemberStatus.MEMBER, enums.ChatMemberStatus.ADMINISTRATOR, enums.ChatMemberStatus.CREATOR):
+                # --- END OF FIX ---
+            
                     # User is not in this channel
                     await cq.answer(f"You must join all channels. Please join {display_name} and try again.", show_alert=True)
                     return
