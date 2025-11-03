@@ -273,20 +273,19 @@ async def start(client, message):
         pass
 
 
-        
 @Client.on_callback_query()
 async def _fsub_callback(client: Client, cq: CallbackQuery):
     if cq.data != "fsub_check":
         return
-    ok = await ensure_subscribed(client, cq.message)
-    if ok:
-        try:
-            await cq.message.edit_text("You’re all set ✅ Try your command again.")
-        except:
-            await cq.answer("You’re all set ✅", show_alert=True)
-    else:
-        await cq.answer("Hehe...abhi bhi join nahi hue ho sab channel mein...join karo pehle", show_alert=True)
+    try:
+        member = await client.get_chat_member(FORCE_SUB, cq.from_user.id)
+        if member.status in ("member", "administrator", "creator"):
+            await cq.message.edit_text("Badhiya ✅ Try your command again.")
+            return
+    except Exception as e:
+        print(f"[ForceSub Callback] {e}")
 
+    await cq.answer("Hehe...abhi bhi join nahi hue ho sab channel mein...join karo pehle", show_alert=True)
 
 
 @Client.on_message(filters.command('api') & filters.private)
