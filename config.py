@@ -59,6 +59,7 @@ FS_TEXT = (
     "agar koi dikkat aye toh @THe_vK_03 ko DM kare."
     "**Thank You.**"
 )
+VERIFY_MODE = False
 
 
 
