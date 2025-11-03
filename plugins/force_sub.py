@@ -45,7 +45,7 @@ async def ensure_subscribed(client: Client, message) -> bool:
     user_id = message.from_user.id
     missing = []
 
-for ch in chs:
+    for ch in chs:
         try:
             print(f"[Debug] Checking membership for user {user_id} in channel {ch}...")
             m = await client.get_chat_member(ch, user_id)
