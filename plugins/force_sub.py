@@ -5,12 +5,14 @@ from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import FORCE_SUB, FS_TEXT
 
-def _channels() -> List[str]:
+def _channels() -> List: # Can be list of int or str
     if not FORCE_SUB:
         return []
-    if isinstance(FORCE_SUB, str):
+    if isinstance(FORCE_SUB, (str, int)):
         return [FORCE_SUB]
-    return list(FORCE_SUB)
+    if isinstance(FORCE_SUB, list):
+        return FORCE_SUB # Already a list from config
+    return []
 
 async def _invite_link(client: Client, chat: str) -> str:
     try:
