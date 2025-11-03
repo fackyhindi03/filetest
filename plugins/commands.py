@@ -23,7 +23,8 @@ from pyrogram.types import CallbackQuery
 from TechVJ.utils.file_properties import get_name, get_hash, get_media_file_size
 from plugins.force_sub import ensure_subscribed
 logger = logging.getLogger(__name__)
-
+from plugins.force_sub import _channels
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid, ChannelPrivate
 BATCH_FILES = {}
 
 # Don't Remove Credit Tg - @VJ_Botz
