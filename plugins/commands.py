@@ -505,7 +505,19 @@ async def _force_sub_sanity(client):
         await client.send_message(ADMINS[0], f"ForceSub sanity error for {FORCE_SUB}: {e}")
 
 
-
+async def get_chat_display_name(client: Client, chat_id: int | str) -> str:
+    """Gets a display-friendly name for a chat."""
+    if isinstance(chat_id, str) and chat_id.startswith("@"):
+        return chat_id  # It's already a username
+    try:
+        chat = await client.get_chat(chat_id)
+        if chat.username:
+            return f"@{chat.username}"
+        if chat.title:
+            return chat.title
+        return str(chat_id) # Fallback to ID
+    except Exception:
+        return str(chat_id) # Fallback on error
 
 from pyrogram import Client
 from pyrogram.types import CallbackQuery
@@ -529,28 +541,32 @@ async def _fsub_callback(client: Client, cq: CallbackQuery):
     try:
         # Loop through all required channels
         for ch in channels_to_check:
+            # --- THIS IS THE FIX ---
+            # Get the channel's name for display instead of using the ID
+            display_name = await get_chat_display_name(client, ch) 
+            
             try:
                 m = await client.get_chat_member(ch, user_id)
                 if m.status not in ("member", "administrator", "creator"):
                     # User is not in this channel
-                    await cq.answer(f"You must join all channels. Please join {ch.lstrip('@')} and try again.", show_alert=True)
+                    await cq.answer(f"You must join all channels. Please join {display_name} and try again.", show_alert=True)
                     return
             except UserNotParticipant:
-                await cq.answer(f"You haven't joined {ch.lstrip('@')}. Please join and try again.", show_alert=True)
+                await cq.answer(f"You haven't joined {display_name}. Please join and try again.", show_alert=True)
                 return
             except (ChatAdminRequired, ChannelPrivate, PeerIdInvalid) as e:
-                # This is the new, important check
-                print(f"[ForceSub Callback Error] Bot can't access channel {ch}: {e}")
-                await cq.answer(f"Bot error: Cannot verify membership in {ch}. Please contact admin.", show_alert=True)
+                # Bot can't access the channel
+                print(f"[ForceSub Callback Error] Bot can't access channel {display_name}: {e}")
+                await cq.answer(f"Bot error: Cannot verify membership in {display_name}. Please contact admin.", show_alert=True)
                 return
-        
+            # --- END OF FIX ---
+
         # If we get here, the user is in ALL channels. Proceed.
         await _proceed_with_command(client, cq)
 
     except Exception as e:
         print(f"[ForceSub Callback Error] {e}")
         await cq.answer("An unexpected error occurred. Try again later.", show_alert=True)
-
 
 async def _proceed_with_command(client: Client, cq: CallbackQuery):
     """Helper function to run after fsub is cleared"""
