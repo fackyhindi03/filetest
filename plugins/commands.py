@@ -84,9 +84,7 @@ async def start(client, message):
         )
         return
 
-# Don't Remove Credit Tg - @VJ_Botz
-# Subscribe YouTube Channel For Amazing Bot https://youtube.com/@Tech_VJ
-# Ask Doubt on telegram @KingVJ01
+
     
     data = message.command[1]
     try:
@@ -271,6 +269,22 @@ async def start(client, message):
         return
     except:
         pass
+
+
+
+from pyrogram.errors import ChatAdminRequired, PeerIdInvalid, ChannelPrivate
+
+async def _force_sub_sanity(client):
+    try:
+        me = await client.get_me()
+        # can the bot see itself in the channel? (only if it's admin)
+        await client.get_chat_member(FORCE_SUB, me.id)
+    except ChatAdminRequired:
+        await client.send_message(ADMINS[0], f"⚠️ Make me ADMIN in {FORCE_SUB} or ForceSub cannot work.")
+    except (PeerIdInvalid, ChannelPrivate):
+        await client.send_message(ADMINS[0], f"⚠️ Check FORCE_SUB value. I can’t resolve {FORCE_SUB}.")
+    except Exception as e:
+        await client.send_message(ADMINS[0], f"ForceSub sanity error for {FORCE_SUB}: {e}")
 
 
 
