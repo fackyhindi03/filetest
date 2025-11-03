@@ -46,6 +46,15 @@ AUTO_DELETE = int(environ.get("AUTO_DELETE", "15")) # Time in Minutes
 AUTO_DELETE_TIME = int(environ.get("AUTO_DELETE_TIME", "1800")) # Time in Seconds
 
 
+
+# ---- Force Subscribe (Join Gate) ----
+# Single channel as string: "@YourChannel"
+# Or multiple: ["@ChannelOne", "@ChannelTwo"]
+FORCE_SUB = os.getenv("FORCE_SUB", "@Facky_Hindi_Donghua").strip()  # e.g., "@Facky_Hindi_Donghua"
+# Optional: comma-separated if you prefer env lists:
+if "," in FORCE_SUB:
+    FORCE_SUB = [x.strip() for x in FORCE_SUB.split(",") if x.strip()]
+
 FS_CHAT_ID = os.environ.get('FORCE_SUB', '-1001963954754') 
 
 if not FS_CHAT_ID:
@@ -64,7 +73,12 @@ else:
         else:
             print("Warning: FORCE_SUB is not a valid int, list of ints, or username. Disabling.")
             FORCE_SUB = None
-
+            
+FS_TEXT = (
+    "Pehle apko niche diye gaye channel or group ko join karna padega fir **✅ I’ve joined** pe click karke apko episode mil jayega.\n\n"
+    "agar koi dikkat aye toh @THe_vK_03 ko DM kare."
+    "**Thank You.**"
+)
 
 
 # Channel Information
