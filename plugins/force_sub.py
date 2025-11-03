@@ -14,19 +14,26 @@ def _channels() -> List: # Can be list of int or str
         return FORCE_SUB # Already a list from config
     return []
 
-async def _invite_link(client: Client, chat: str) -> str:
+async def _invite_link(client: Client, chat_id: int | str) -> (str, str):
+    """Returns (invite_link, chat_display_name)"""
     try:
-        ch = await client.get_chat(chat)
+        ch = await client.get_chat(chat_id)
+        display_name = ch.title or (f"@{ch.username}" if ch.username else str(chat_id))
+        
         if ch.username:  # public
-            return f"https://t.me/{ch.username}"
+            return f"https://t.me/{ch.username}", display_name
+        
         # private – requires bot admin to export
         try:
-            return await client.export_chat_invite_link(ch.id)
+            link = await client.export_chat_invite_link(ch.id)
+            return link, display_name
         except ChatAdminRequired:
-            return "https://t.me/"
+            return "https://t.me/", display_name # Cannot get link
+            
     except Exception as e:
-        print(f"[ForceSub] invite link error for {chat}: {e}")
-        return "https://t.me/"
+        print(f"[ForceSub] invite link error for {chat_id}: {e}")
+        return "https://t.me/", str(chat_id) # Fallback
+        
 
 async def ensure_subscribed(client: Client, message) -> bool:
     chs = _channels()
@@ -65,8 +72,8 @@ async def ensure_subscribed(client: Client, message) -> bool:
 
     rows = []
     for ch in missing:
-        url = await _invite_link(client, ch)
-        rows.append([InlineKeyboardButton(f"Join {ch.lstrip('@')}", url=url)])
+        url, display_name = await _invite_link(client, ch) # Get both link and name
+        rows.append([InlineKeyboardButton(f"Join {display_name}", url=url)]) # Use the display_name
 
     # include prior command (if any) so we can resume exactly
     cbdata = "fsub_check" + (f"|{retry_cmd}" if retry_cmd else "")
