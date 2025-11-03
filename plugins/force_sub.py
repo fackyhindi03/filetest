@@ -68,8 +68,15 @@ async def ensure_subscribed(client: Client, message) -> bool:
             print(f"[Debug] ChatAdminRequired error. Bot is NOT ADMIN in {ch}. Adding to missing.")
             missing.append(ch)
         except Exception as e:
-            print(f"[Debug] unexpected error for {ch}: {e}")
-            missing.append(ch)
+            # --- THIS IS THE FIX ---
+            # Handle the weird "CREATOR" exception for the channel owner
+            if str(e) == "CREATOR":
+                print(f"[Debug] User is CREATOR. Passing check in ensure_subscribed.")
+                pass # User is the creator, so they pass the check
+            # --- END OF FIX ---
+            else:
+                print(f"[Debug] unexpected error for {ch}: {e}")
+                missing.append(ch)
 
     if not missing:
         return True
